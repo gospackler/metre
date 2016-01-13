@@ -35,9 +35,8 @@ func main () {
     schedule: func(s metre.Scheduler, c metre.cache, q metre.queue)  {
       s.schedule("TestId") // only schedules if "TestID" is not being processed ("F-TestId" not cached in a processing state)
     },
-    process: func(s metre.Scheduler, c metre.cache, q metre.queue)  {
-      log.Info("Processing: test")
-    },
+    process: func(t metre.TaskInstance, s metre.Scheduler, c metre.Cache, q metre.Queue)  {
+      log.Info("Processing: " + t.class + "-" + t.uid)
   })
 
   m.add(metre.Task{
@@ -46,7 +45,7 @@ func main () {
     schedule: func(s metre.Scheduler, c metre.Cache, q metre.Queue)  {
       s.schedule("TestId") // only schedules if "TestID" is not being processed ("F-TestId" not cached in a processing state)
     },
-    process: func(t metre.TaskInstance, s metre.Scheduler, c metre.Cache, q metre.Qßueue)  {
+    process: func(t metre.TaskInstance, s metre.Scheduler, c metre.Cache, q metre.Queue)  {
       log.Info("Processing: " + t.class + "-" + t.uid)
     },
   })
