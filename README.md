@@ -26,7 +26,7 @@ func main () {
 	flag.Parse()
 
   // Create
-  m := metre.New("127.0.0.1:5555", "127.0.0.1:6379")
+  m := metre.New("127.0.0.1:5555", "127.0.0.1:6379") // (zmq, redis)
 
   // Add tasks
   m.add(metre.Task{
@@ -43,11 +43,11 @@ func main () {
   m.add(metre.Task{
     class: "B", // used to prevent collision across tasks
     interval: "@every minute", // Cron schedule
-    schedule: func(s metre.Scheduler, c metre.cache, q metre.queue)  {
+    schedule: func(s metre.Scheduler, c metre.Cache, q metre.Queue)  {
       s.schedule("TestId") // only schedules if "TestID" is not being processed ("F-TestId" not cached in a processing state)
     },
-    process: func(s metre.Scheduler, c metre.cache, q metre.queue)  {
-      log.Info("Processing: test")
+    process: func(t metre.TaskInstance, s metre.Scheduler, c metre.Cache, q metre.Qßueue)  {
+      log.Info("Processing: " + t.class + "-" + t.uid)
     },
   })
 
