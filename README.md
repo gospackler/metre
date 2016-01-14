@@ -18,10 +18,7 @@ import (
 
 
 func main () {
-	mFlagPtr := flag.Bool("master", false, "a boolean to run master")
-	sFlagPtr := flag.Bool("slave", false, "a boolean to run slave")
-	flag.Parse()
-
+  
   // Create
   m := metre.New("127.0.0.1:5555", "127.0.0.1:6379") // (zmq, redis)
 
