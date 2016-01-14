@@ -2,6 +2,7 @@
 package metre
 
 import (
+    "time"
     "github.com/satori/go.uuid"
 )
 
@@ -15,13 +16,13 @@ type TaskRecord struct {
 
 // NewTaskRecord takes seed data and returns a full TaskRecord instance
 func NewTaskRecord(id string) TaskRecord {
-    uid := uuid.NewV4()
+    uid := uuid.NewV4().String()
     now := time.Now().UTC().Format(time.RFC3339)
-    return {id, uid, now, now, "UNSCHEDULED"}
+    return TaskRecord{id, uid, now, now, "UNSCHEDULED"}
 }
 
 // NewTaskRecordWithID takes seed data and returns a full TaskRecord instance
-func NewTaskRecordWithID(id, uid) TaskRecord {
+func NewTaskRecordWithID(id string, uid string) TaskRecord {
     now := time.Now().UTC().Format(time.RFC3339)
-    return {id, uid, now, now, "UNSCHEDULED"}
+    return TaskRecord{id, uid, now, now, "UNSCHEDULED"}
 }

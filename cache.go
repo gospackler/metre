@@ -31,8 +31,8 @@ func (c Cache) Get(key string) (string, error) {
 }
 
 // New acts as a queue constructor
-func New(host string, port string) (Cache, error) {
-    u := "tcp://" + host + ":" + port
+func NewCache(uri string) (Cache, error) {
+    u := "tcp://" + uri
     p := &redis.Pool{
         MaxIdle: 80,
         MaxActive: 12000,

@@ -2,7 +2,10 @@
 package metre
 
 import (
+    "strings"
+
     "github.com/robfig/cron"
+    log "github.com/Sirupsen/logrus"
 )
 
 const LOCALHOST string = "127.0.0.1" // Default host for cache and queue
@@ -15,51 +18,52 @@ type Metre struct {
     Cache Cache
     Scheduler Scheduler
     TaskMap map[string]Task
-    Add func(t Task)
+    // Add func(t Task)
 }
 
 // New creates a new scheduler to manage task scheduling and states
-func New(cacheUri string, redisUri string) Scheduler {
+func New(queueUri string, cacheUri string) Metre {
     if cacheUri == "" {
-        cacheUri = LOCALHOST + ":" + CACHEURI
-    } else if string.index(cacheUri, ":") == 0 {
+        cacheUri = LOCALHOST + ":" + CACHEPORT
+    } else if strings.Index(cacheUri, ":") == 0 {
         cacheUri = LOCALHOST + ":" + cacheUri
     }
 
-    if cacheUri == "" {
-        cacheUri = LOCALHOST + ":" + QUEUEPORT
-    } else if string.index(queueUri, ":") == 0 {
-        cacheUri = LOCALHOST + ":" + queueUri
+    if queueUri == "" {
+        queueUri = LOCALHOST + ":" + QUEUEPORT
+    } else if strings.Index(queueUri, ":") == 0 {
+        queueUri = LOCALHOST + ":" + queueUri
     }
 
-    cron := Cron.New()
-    q, _ := Queue.New(redisUri)
-    c, _ := Cache.New(cacheUri)
-    s := Scheduler.new(redisUri, cacheUri)
-    return  Metre{cron, q, c}
+    cron := *cron.New()
+    q, _ := NewQueue(queueUri)
+    c, _ := NewCache(cacheUri)
+    s := NewScheduler(q, c)
+    var m map[string]Task
+    return  Metre{cron, q, c, s, m}
 }
 
 // Add adds a cron job task to schedule and process
-func (m *Metre) add(t Task) {
+func (m *Metre) Add(t Task) {
     if _, exists := m.TaskMap[t.ID]; exists {
         panic("Attempted to add two tasks with the same ID [" + t.ID + "]")
     }
 
     m.TaskMap[t.ID] = t
-    m.Cron.Addfunc(t.Interval, func () {
+    m.Cron.AddFunc(t.Interval, func () {
         log.Debug("Scheduling: " + t.ID)
-        task := NewTaskRecord(t.ID)
+        // task := NewTaskRecord(t.ID)
         // t.Schedule(task, m.Scheduler, m.Cache, m.Queue)
     })
 }
 
-func (m *Metre) startMaster() {
+func (m *Metre) StartMaster() {
     m.Cron.Start()
 }
 
-func (m *Metre) startSlave() {
+func (m *Metre) StartSlave() {
     for {
-        log.Debug("Waiting fro message")
+        log.Debug("Waiting for message")
         msg := m.Queue.Pop()
         log.Debug("Received")
         log.Debug(msg)

@@ -3,6 +3,7 @@ package metre
 
 import (
     zmq "github.com/pebbe/zmq4"
+    log "github.com/Sirupsen/logrus"
 )
 
 type Queue struct {
@@ -27,8 +28,8 @@ func (q Queue) Pop() string {
 }
 
 // New acts as a queue constructor
-func New(host string, port string) (Queue, error) {
-    u := "tcp://" + host + ":" + port
+func NewQueue(uri string) (Queue, error) {
+    u := "tcp://" + uri
     c, _ := zmq.NewContext()
     pushSoc, _ := c.NewSocket(zmq.PUSH)
     pullSoc, _ := c.NewSocket(zmq.PULL)
