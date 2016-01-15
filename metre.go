@@ -39,7 +39,7 @@ func New(queueUri string, cacheUri string) Metre {
     q, _ := NewQueue(queueUri)
     c, _ := NewCache(cacheUri)
     s := NewScheduler(q, c)
-    var m map[string]Task
+    m := make(map[string]Task)
     return  Metre{cron, q, c, s, m}
 }
 
