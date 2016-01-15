@@ -51,9 +51,7 @@ func (m *Metre) Add(t Task) {
 
     m.TaskMap[t.ID] = t
     m.Cron.AddFunc(t.Interval, func () {
-        log.Debug("Scheduling: " + t.ID)
-        // task := NewTaskRecord(t.ID)
-        // t.Schedule(task, m.Scheduler, m.Cache, m.Queue)
+        t.Schedule(NewTaskRecord(t.ID), m.Scheduler, m.Cache, m.Queue)
     })
 }
 
