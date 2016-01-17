@@ -14,7 +14,7 @@ type Queue struct {
 
 // Push pushes and element onto the queue
 func (q Queue) Push(msg string) (int, error) {
-    result, err := q.PushSocket.Send(msg, queueFlag)
+    result, err := q.PushSocket.Send(msg, 1)
     return result, err
 }
 
@@ -32,7 +32,7 @@ func NewQueue(uri string) (Queue, error) {
     pullSoc, _ := c.NewSocket(zmq.PULL)
 
     pushSoc.Bind(u)
-    pullSoc.Bind(u)
+    pullSoc.Connect(u)
 
     q := Queue{pushSoc, pullSoc}
     return q, nil
