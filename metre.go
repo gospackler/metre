@@ -1,4 +1,4 @@
-// Package metre is used to schedule end execute corn jobs in a simplified fashion
+// Package metre is used to schedule end execute cron jobs in a simplified fashion
 package metre
 
 import (
