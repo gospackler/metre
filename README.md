@@ -2,10 +2,6 @@
 
 Golang cron framework
 
-# DO NOT USE
-### This repository is under construction
-#### Please check back in a month or so :)
-
 ## Example
 
 ```Go
@@ -25,9 +21,11 @@ func main () {
   // Add tasks
   m.add(metre.Task{
     ID: "F", // used to prevent collision across tasks
-    Interval: "* * * * * *", // Cron Schedule
+    Interval: "* * * * * *", // Cron expression
     Schedule: func(t metre.TaskConfig, s metre.Scheduler, c metre.cache, q metre.queue)  {
-      s.Schedule("TestId") // only schedules if "TestID" is not being processed ("F-TestId" not cached in a processing state)
+      t.UID = "TestID" // overwrite the generated UID with a static namespace
+      s.Schedule(t) // only schedules if "TestID" is not being processed ("F-TestId" not cached in a processing state)
+      s.SetExpire(t, 15000) // set expire in milliseconds
     },
     Process: func(t metre.TaskConfig, s metre.Scheduler, c metre.Cache, q metre.Queue)  {
       log.Info("Processing: " + t.class + "-" + t.uid)
@@ -37,7 +35,8 @@ func main () {
     ID: "B", // used to prevent collision across tasks
     Interval: "@every minute", // Cron Schedule
     Schedule: func(s metre.Scheduler, c metre.Cache, q metre.Queue)  {
-      s.Schedule("TestId") // only schedules if "TestID" is not being processed ("F-TestId" not cached in a processing state)
+      t.UID = "TestID" // overwrite the generated UID with a static namespace
+      s.ForceSchedule(t) // schedule regardless of task state
     },
     Process: func(t metre.TaskInstance, s metre.Scheduler, c metre.Cache, q metre.Queue)  {
       log.Info("Processing: " + t.class + "-" + t.uid)
