@@ -55,8 +55,8 @@ func main () {
 
 ## TODO
 
-- Transfer POC from internal project.
-- Everything else
+- Scheduler seems to only queue every other iteration
+- process function map
 
 ## Authors
 
