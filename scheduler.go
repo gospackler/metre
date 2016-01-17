@@ -84,8 +84,7 @@ func (s Scheduler) ForceSchedule(t TaskRecord) (string, error) {
     return key, nil
 }
 
-
-// buildTaskKey builds a redis unique key for the task
-func buildTaskKey(t TaskRecord) string {
-    return "cron-" + t.ID + ":" + t.UID
+// SetExpire set teh expiration for a task
+func (s Scheduler) SetExpire(t TaskRecord, time int) {
+    s.Cache.Expire(buildTaskKey(t), time)
 }

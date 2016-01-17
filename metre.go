@@ -3,7 +3,7 @@ package metre
 
 import (
     "strings"
-    
+
     "github.com/robfig/cron"
     log "github.com/Sirupsen/logrus"
 )
@@ -61,9 +61,15 @@ func (m *Metre) StartMaster() {
 
 func (m *Metre) StartSlave() {
     for {
-        log.Debug("Waiting for message")
         msg := m.Queue.Pop()
-        log.Debug("Received")
-        log.Debug(msg)
+        tr, _ := ParseTask(msg)
+        if tr.ID == "" || tr.UID == "" {
+            log.Warn("Failed to parse task from message: " + msg)
+            continue
+        }
+
+        m.Cache.Delete(buildTaskKey(tr))
+        tsk := m.TaskMap[tr.ID]
+        go tsk.Process(tr, m.Scheduler, m.Cache, m.Queue)
     }
 }
