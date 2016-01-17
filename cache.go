@@ -1,7 +1,6 @@
 package metre
 
 import (
-    "fmt"
     "github.com/garyburd/redigo/redis"
 )
 
@@ -24,7 +23,6 @@ func (c Cache) Set(key string, val string) (interface{}, error) {
 // Expire sets the cache value for the provided key
 func (c Cache) Expire(key string, mSeconds int) {
     conn := c.ConnPool.Get()
-    fmt.Println("test")
     conn.Do("PEXPIRE", key, mSeconds)
 }
 
