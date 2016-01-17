@@ -67,37 +67,3 @@ func (m *Metre) StartSlave() {
         log.Debug(msg)
     }
 }
-
-//
-// func (s Scheduler) Schedule(tsk Task) {
-//     key := "cron-" + tsk.Type + ":" + tsk.UID
-//
-//     old, _ := s.Cache.Get(key)
-//     schedule := false
-//     var oldTsk Task
-//
-//     if old == "" {
-//         schedule = true
-//     } else {
-//         oldTsk, _ = ParseTask(old)
-//         if oldTsk.CanReschedule() {
-//             schedule = true
-//         }
-//     }
-//
-//     if schedule {
-//         log.Info("Scheduling: " + key)
-//         tsk.SetScheduled()
-//         str, _ := tsk.ToString()
-//         s.Queue.Push(str)
-//         s.Cache.Set(key, str)
-//     } else {
-//         log.Warn("Did not schedule: " + key)
-//     }
-//
-// }
-//
-// func (s Scheduler) Process() {
-//     m := s.Queue.Pop()
-//     log.Info(m)
-// }

@@ -18,7 +18,7 @@ import (
 
 
 func main () {
-  
+
   // Create
   m := metre.New("127.0.0.1:5555", "127.0.0.1:6379") // (zmq, redis)
 

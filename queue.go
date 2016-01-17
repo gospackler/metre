@@ -3,7 +3,6 @@ package metre
 
 import (
     zmq "github.com/pebbe/zmq4"
-    log "github.com/Sirupsen/logrus"
 )
 
 const queueFlag zmq.Flag = 0
