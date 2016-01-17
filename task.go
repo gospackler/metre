@@ -1,4 +1,3 @@
-// Package metre is used to schedule end execute corn jobs in a simplified fashion
 package metre
 
 type Task struct {
