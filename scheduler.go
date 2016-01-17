@@ -3,6 +3,7 @@ package metre
 
 import (
     "errors"
+    "github.com/satori/go.uuid"
 )
 
 type Scheduler struct {
@@ -15,7 +16,7 @@ func NewScheduler(q Queue, c Cache) Scheduler {
 }
 
 
-// Schedule schedules a task in the cahce and queue if no task is actively waiting to be processed
+// Schedule schedules a task in the cache and queue if no task is actively waiting to be processed
 func (s Scheduler) Schedule(t TaskRecord) (string, error) {
     key := buildTaskKey(t)
     old, _ := s.Cache.Get(key)
@@ -37,18 +38,50 @@ func (s Scheduler) Schedule(t TaskRecord) (string, error) {
     if schedule {
         t.SetScheduled()
         str, _ := t.ToString()
-        cRsult, cErr := s.Cache.Set(key, str)
+        _, cErr := s.Cache.Set(key, str)
         if cErr != nil {
             return key, err
         }
-        qResult, qErr := s.Queue.Push(str)
+        _, qErr := s.Queue.Push(str)
         if qErr != nil {
             return key, err
         }
+
         return key, nil
     } else {
         return key, err
     }
+}
+
+// ForceSchedule schedules a task in the cache and queue regardless of tasks actively waiting to be processed
+func (s Scheduler) ForceSchedule(t TaskRecord) (string, error) {
+    key := buildTaskKey(t)
+    old, _ := s.Cache.Get(key)
+    var oldTsk TaskRecord
+    var err error
+
+    // affix an additional UID if there was a collision
+    if old != "" {
+        oldTsk, _ = ParseTask(old)
+        if oldTsk.UID == t.UID {
+            uid := uuid.NewV4().String()
+            t.UID  = t.UID + "-" +  uid
+        }
+    }
+
+    key = buildTaskKey(t)
+    t.SetScheduled()
+    str, _ := t.ToString()
+    _, cErr := s.Cache.Set(key, str)
+    if cErr != nil {
+        return key, err
+    }
+    _, qErr := s.Queue.Push(str)
+    if qErr != nil {
+        return key, err
+    }
+
+    return key, nil
 }
 
 

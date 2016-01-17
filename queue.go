@@ -6,24 +6,22 @@ import (
     log "github.com/Sirupsen/logrus"
 )
 
+const queueFlag zmq.Flag = 0
+
 type Queue struct {
     PushSocket *zmq.Socket // Socket to push messages to
     PullSocket *zmq.Socket // SOcket to pull mesasges form
 }
 
 // Push pushes and element onto the queue
-func (q Queue) Push(msg string) {
-    _, err := q.PushSocket.Send(msg, 0)
-    if (err != nil) {
-        log.Warn(err)
-    }
+func (q Queue) Push(msg string) (int, error) {
+    result, err := q.PushSocket.Send(msg, queueFlag)
+    return result, err
 }
 
 // Pop pulls off the last element from the queue
 func (q Queue) Pop() string {
-    log.Debug("before")
-    m, _ := q.PullSocket.Recv(0)
-    log.Debug("after")
+    m, _ := q.PullSocket.Recv(queueFlag)
     return m
 }
 
@@ -34,8 +32,8 @@ func NewQueue(uri string) (Queue, error) {
     pushSoc, _ := c.NewSocket(zmq.PUSH)
     pullSoc, _ := c.NewSocket(zmq.PULL)
 
-    pushSoc.Connect(u)
-    pullSoc.Connect(u)
+    pushSoc.Bind(u)
+    pullSoc.Bind(u)
 
     q := Queue{pushSoc, pullSoc}
     return q, nil
