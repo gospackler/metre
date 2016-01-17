@@ -1,6 +1,19 @@
 # metre
 
-Golang cron framework
+Golang cron framework. Scheduling through ØMQ push-pull and state managed through redis
+
+## Requirements
+
+- [ØMQ](http://zeromq.org/)
+- [Redis](http://redis.io/)
+
+## Installation
+
+`go get github.com/johnhof/metre`
+
+## Documentation
+
+- [API Reference]()
 
 ## Example
 
@@ -54,8 +67,8 @@ func main () {
 
 ## TODO
 
-- Scheduler seems to only queue every other iteration
-- process function map
+- Processor seems to miss one iteration when round-robbining sockets
+- Connection cleanup and error handling
 
 ## Authors
 
