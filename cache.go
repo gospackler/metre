@@ -53,5 +53,7 @@ func NewCache(uri string) (Cache, error) {
         },
     }
 
+    // TODO: add recover
+
     return Cache{p}, nil
 }

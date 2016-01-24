@@ -22,7 +22,7 @@ type Metre struct {
 }
 
 // New creates a new scheduler to manage task scheduling and states
-func New(queueUri string, cacheUri string) Metre {
+func New(queueUri string, cacheUri string) (Metre, error) {
     if cacheUri == "" {
         cacheUri = LOCALHOST + ":" + CACHEPORT
     } else if strings.Index(cacheUri, ":") == 0 {
@@ -36,11 +36,18 @@ func New(queueUri string, cacheUri string) Metre {
     }
 
     cron := *cron.New()
-    q, _ := NewQueue(queueUri)
-    c, _ := NewCache(cacheUri)
+    c, cErr := NewCache(cacheUri)
+    if cErr != nil {
+        return Metre{}, cErr
+    }
+    q, qErr := NewQueue(queueUri)
+    if qErr != nil {
+        return Metre{}, qErr
+    }
+
     s := NewScheduler(q, c)
     m := make(map[string]Task)
-    return  Metre{cron, q, c, s, m}
+    return  Metre{cron, q, c, s, m}, nil
 }
 
 // Add adds a cron job task to schedule and process
@@ -56,10 +63,18 @@ func (m *Metre) Add(t Task) {
 }
 
 func (m *Metre) StartMaster() {
+    e := m.Queue.BindPush()
+    if e != nil {
+        panic(e)
+    }
     m.Cron.Start()
 }
 
 func (m *Metre) StartSlave() {
+    e := m.Queue.ConnectPull()
+    if e != nil {
+        panic(e)
+    }
     for {
         msg := m.Queue.Pop()
         tr, _ := ParseTask(msg)

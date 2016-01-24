@@ -29,7 +29,7 @@ import (
 func main () {
 
   // Create
-  m := metre.New("127.0.0.1:5555", "127.0.0.1:6379") // (zmq, redis)
+  m, _ := metre.New("127.0.0.1:5555", "127.0.0.1:6379") // (zmq, redis)
 
   // Add tasks
   m.add(metre.Task{
@@ -64,11 +64,6 @@ func main () {
   // allowing us to scale them separately
 }
 ```
-
-## TODO
-
-- Processor seems to miss one iteration when round-robbining sockets
-- Connection cleanup and error handling
 
 ## Authors
 

@@ -1,6 +1,7 @@
 package metre
 
 import (
+    "fmt"
     "errors"
     "github.com/satori/go.uuid"
 )
@@ -19,34 +20,23 @@ func NewScheduler(q Queue, c Cache) Scheduler {
 func (s Scheduler) Schedule(t TaskRecord) (string, error) {
     key := buildTaskKey(t)
     old, _ := s.Cache.Get(key)
-    schedule := false
+    sched := false
     var oldTsk TaskRecord
     var err error
 
     if old == "" {
-        schedule = true
+        sched = true
     } else {
         oldTsk, _ = ParseTask(old)
         if oldTsk.CanReschedule() {
-            schedule = true
+            sched = true
         } else {
             err = errors.New("A Task with the submitted ID and UID [" + oldTsk.ID + ", " + oldTsk.UID + "] is being processed")
         }
     }
 
-    if schedule {
-        t.SetScheduled()
-        str, _ := t.ToString()
-        _, cErr := s.Cache.Set(key, str)
-        if cErr != nil {
-            return key, err
-        }
-        _, qErr := s.Queue.Push(str)
-        if qErr != nil {
-            return key, err
-        }
-
-        return key, nil
+    if sched {
+        return schedule(key, t, s.Queue, s.Cache)
     } else {
         return key, err
     }
@@ -57,7 +47,6 @@ func (s Scheduler) ForceSchedule(t TaskRecord) (string, error) {
     key := buildTaskKey(t)
     old, _ := s.Cache.Get(key)
     var oldTsk TaskRecord
-    var err error
 
     // affix an additional UID if there was a collision
     if old != "" {
@@ -68,22 +57,26 @@ func (s Scheduler) ForceSchedule(t TaskRecord) (string, error) {
         }
     }
 
-    key = buildTaskKey(t)
-    t.SetScheduled()
-    str, _ := t.ToString()
-    _, cErr := s.Cache.Set(key, str)
-    if cErr != nil {
-        return key, err
-    }
-    _, qErr := s.Queue.Push(str)
-    if qErr != nil {
-        return key, err
-    }
-
-    return key, nil
+    return schedule(buildTaskKey(t), t, s.Queue, s.Cache)
 }
 
 // SetExpire set teh expiration for a task
 func (s Scheduler) SetExpire(t TaskRecord, time int) {
     s.Cache.Expire(buildTaskKey(t), time)
+}
+
+// scheduler performs a transaction cache and queue
+func schedule(k string, t TaskRecord, q Queue, c Cache) (string, error) {
+    t.SetScheduled()
+    str, _ := t.ToString()
+    _, cErr := c.Set(k, str)
+    if cErr != nil {
+        return k, fmt.Errorf("set cache returned error: %v",  cErr)
+    }
+    _, qErr := q.Push(str)
+    if qErr != nil {
+        return k, fmt.Errorf("push queue returned error: %v",  qErr)
+    }
+
+    return k, nil
 }
