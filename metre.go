@@ -3,6 +3,7 @@ package metre
 
 import (
     "strings"
+    "errors"
 
     "github.com/robfig/cron"
     log "github.com/Sirupsen/logrus"
@@ -53,13 +54,41 @@ func New(queueUri string, cacheUri string) (Metre, error) {
 // Add adds a cron job task to schedule and process
 func (m *Metre) Add(t Task) {
     if _, exists := m.TaskMap[t.ID]; exists {
-        panic("Attempted to add two tasks with the same ID [" + t.ID + "]")
+        panic("attempted to add two tasks with the same ID [" + t.ID + "]")
     }
 
     m.TaskMap[t.ID] = t
     m.Cron.AddFunc(t.Interval, func () {
         t.Schedule(NewTaskRecord(t.ID), m.Scheduler, m.Cache, m.Queue)
     })
+}
+
+// Schedule schedules a singular cron task
+func (m *Metre) Schedule(ID string) (string, error) {
+    e := m.Queue.BindPush()
+    if e != nil{
+        return "", nil
+    }
+    t, ok := m.TaskMap[ID]
+    if ok == false {
+        return "", errors.New("task [" + ID + "] not recognized")
+    }
+
+    tr := NewTaskRecord(t.ID)
+    t.Schedule(tr, m.Scheduler, m.Cache, m.Queue)
+    return buildTaskKey(tr), nil
+}
+
+// Scheduler processes a singular cron task
+func (m *Metre) Process(ID string) (string, error) {
+    t, ok := m.TaskMap[ID]
+    if ok == false {
+        return "", errors.New("task [" + ID + "] not recognized")
+    }
+
+    tr := NewTaskRecord(t.ID)
+    t.Process(tr, m.Scheduler, m.Cache, m.Queue)
+    return buildTaskKey(tr), nil
 }
 
 func (m *Metre) StartMaster() {
