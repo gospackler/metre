@@ -92,10 +92,12 @@ func (m *Metre) Process(ID string) (string, error) {
 }
 
 func (m *Metre) StartMaster() {
+	log.Info("Metre : Starting master ..")
 	e := m.Queue.BindPush()
 	if e != nil {
 		panic(e)
 	}
+	log.Info("Metre : Starting Cron ")
 	m.Cron.Start()
 }
 

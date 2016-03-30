@@ -15,6 +15,7 @@ type Queue struct {
 
 // BindPush binds to the socket to push
 func (q Queue) BindPush() error {
+	fmt.Println("Metre: Queue Binding url" + q.URI)
 	return q.PushSocket.Bind(q.URI)
 }
 
