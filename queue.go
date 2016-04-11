@@ -2,13 +2,15 @@ package metre
 
 import (
     "fmt"
+
     zmq "github.com/pebbe/zmq4"
 )
 
 const queueFlag zmq.Flag = 0
+const ZMQ_BLOCKING = iota
 
 type Queue struct {
-    URI string
+    URI        string
     PushSocket *zmq.Socket // Socket to push messages to
     PullSocket *zmq.Socket // SOcket to pull mesasges form
 }
@@ -25,7 +27,7 @@ func (q Queue) ConnectPull() error {
 
 // Push pushes and element onto the queue
 func (q Queue) Push(msg string) (int, error) {
-    result, err := q.PushSocket.Send(msg, 1)
+    result, err := q.PushSocket.Send(msg, ZMQ_BLOCKING)
     return result, err
 }
 
@@ -42,11 +44,11 @@ func NewQueue(uri string) (Queue, error) {
 
     pullSoc, pullErr := c.NewSocket(zmq.PULL)
     if pullErr != nil {
-        return Queue{}, fmt.Errorf("pull socket initialization failed: %v",  pullErr)
+        return Queue{}, fmt.Errorf("pull socket initialization failed: %v", pullErr)
     }
     pushSoc, pushErr := c.NewSocket(zmq.PUSH)
     if pushErr != nil {
-        return Queue{}, fmt.Errorf("push socket initialization failed: %v",  pushErr)
+        return Queue{}, fmt.Errorf("push socket initialization failed: %v", pushErr)
     }
 
     q := Queue{u, pushSoc, pullSoc}
