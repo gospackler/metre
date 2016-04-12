@@ -1,8 +1,9 @@
 package metre
 
 import (
-    "fmt"
     "errors"
+    "fmt"
+
     "github.com/satori/go.uuid"
 )
 
@@ -14,7 +15,6 @@ type Scheduler struct {
 func NewScheduler(q Queue, c Cache) Scheduler {
     return Scheduler{q, c}
 }
-
 
 // Schedule schedules a task in the cache and queue if no task is actively waiting to be processed
 func (s Scheduler) Schedule(t TaskRecord) (string, error) {
@@ -53,7 +53,7 @@ func (s Scheduler) ForceSchedule(t TaskRecord) (string, error) {
         oldTsk, _ = ParseTask(old)
         if oldTsk.UID == t.UID {
             uid := uuid.NewV4().String()
-            t.UID  = t.UID + "-" +  uid
+            t.UID = t.UID + "-" + uid
         }
     }
 
@@ -66,16 +66,19 @@ func (s Scheduler) SetExpire(t TaskRecord, time int) {
 }
 
 // scheduler performs a transaction cache and queue
+// The order is: push the task, change the state, update state in the cache.
 func schedule(k string, t TaskRecord, q Queue, c Cache) (string, error) {
+    _, qErr := q.Push(str)
+    if qErr != nil {
+        return k, fmt.Errorf("push queue returned error: %v", qErr)
+    }
+
     t.SetScheduled()
+
     str, _ := t.ToString()
     _, cErr := c.Set(k, str)
     if cErr != nil {
-        return k, fmt.Errorf("set cache returned error: %v",  cErr)
-    }
-    _, qErr := q.Push(str)
-    if qErr != nil {
-        return k, fmt.Errorf("push queue returned error: %v",  qErr)
+        return k, fmt.Errorf("set cache returned error: %v", cErr)
     }
 
     return k, nil
