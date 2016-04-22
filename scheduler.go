@@ -68,6 +68,7 @@ func (s Scheduler) SetExpire(t TaskRecord, time int) {
 // scheduler performs a transaction cache and queue
 // The order is: push the task, change the state, update state in the cache.
 func schedule(k string, t TaskRecord, q Queue, c Cache) (string, error) {
+    str, _ := t.ToString()
     _, qErr := q.Push(str)
     if qErr != nil {
         return k, fmt.Errorf("push queue returned error: %v", qErr)
@@ -75,7 +76,6 @@ func schedule(k string, t TaskRecord, q Queue, c Cache) (string, error) {
 
     t.SetScheduled()
 
-    str, _ := t.ToString()
     _, cErr := c.Set(k, str)
     if cErr != nil {
         return k, fmt.Errorf("set cache returned error: %v", cErr)
