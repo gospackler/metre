@@ -44,18 +44,20 @@ func printMsgs(msgChan chan string) {
 }
 
 func TestLife(t *testing.T) {
+
 	var wg sync.WaitGroup
-	met, err := New("", "", "")
+	met, err := New("127.0.0.1:5555", "127.0.0.1:5556", "")
 	if err != nil {
 		t.Errorf("Metre creation error" + err.Error())
 	}
 
 	printMsgs(met.MessageChannel)
 
+	met.Add(test)
+	met.StartMaster()
 	go met.Track()
 	go met.StartSlave()
 
-	met.Add(test)
 	met.Schedule(test.ID)
 	wg.Add(1)
 	wg.Wait()

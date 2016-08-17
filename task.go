@@ -27,6 +27,13 @@ func (t Task) GetInterval() string {
 	return t.Interval
 }
 
+// Zeros the parameters that may change in a run()
+func (t *Task) Zero() {
+	t.MessageCount = 0
+	t.ScheduleCount = 0
+	t.StartTime = time.Now()
+	t.ScheduleDone = false
+}
 func (t *Task) checkComplete() bool {
 	return t.MessageCount == t.ScheduleCount && t.ScheduleDone
 }

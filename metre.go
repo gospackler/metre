@@ -4,7 +4,6 @@ package metre
 import (
 	"errors"
 	"strings"
-	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/robfig/cron"
@@ -94,9 +93,7 @@ func (m *Metre) scheduleFromId(ID string) (string, error) {
 	tr := NewTaskRecord(ID)
 
 	// Making sure the next run is not affected by previous runs.
-	t.MessageCount = 0
-	t.ScheduleCount = 0
-	t.StartTime = time.Now()
+	t.Zero()
 	go t.TestTimeOut()
 	t.Schedule(tr, m.Scheduler, m.Cache, m.Queue)
 	t.ScheduleDone = true
