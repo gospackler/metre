@@ -25,7 +25,7 @@ type Metre struct {
 }
 
 // New creates a new scheduler to manage task scheduling and states
-func New(queueUri string, trackQueueUri string, cacheUri string) (Metre, error) {
+func New(queueUri string, trackQueueUri string, cacheUri string) (*Metre, error) {
 	if cacheUri == "" {
 		cacheUri = LOCALHOST + ":" + CACHEPORT
 	} else if strings.Index(cacheUri, ":") == 0 {
@@ -47,26 +47,22 @@ func New(queueUri string, trackQueueUri string, cacheUri string) (Metre, error) 
 	cron := *cron.New()
 	c, cErr := NewCache(cacheUri)
 	if cErr != nil {
-		return Metre{}, cErr
+		return nil, cErr
 	}
 	q, qErr := NewQueue(queueUri)
 	if qErr != nil {
-		return Metre{}, qErr
+		return nil, qErr
 	}
 
 	t, tErr := NewQueue(trackQueueUri)
 	if tErr != nil {
-		return Metre{}, tErr
+		return nil, tErr
 	}
 
-	err := t.BindPush()
-	if err != nil {
-		return Metre{}, err
-	}
 	m := make(map[string]*Task)
 	s := NewScheduler(q, c, m)
 	msgChan := make(chan string)
-	return Metre{cron, q, t, c, s, m, msgChan}, nil
+	return &Metre{cron, q, t, c, s, m, msgChan}, nil
 }
 
 // Add adds a cron job task to schedule and process
@@ -159,6 +155,11 @@ func (m *Metre) runAndSendComplete(tr TaskRecord) {
 }
 
 func (m *Metre) StartSlave() {
+	err := m.TrackQueue.BindPush()
+	if err != nil {
+		log.Warn("Track queue not working properly ", err.Error())
+	}
+
 	e := m.Queue.ConnectPull()
 	if e != nil {
 		panic(e)
