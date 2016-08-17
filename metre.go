@@ -97,6 +97,7 @@ func (m *Metre) scheduleFromId(ID string) (string, error) {
 	t.MessageCount = 0
 	t.ScheduleCount = 0
 	t.StartTime = time.Now()
+	go t.TestTimeOut()
 	t.Schedule(tr, m.Scheduler, m.Cache, m.Queue)
 	t.ScheduleDone = true
 	return buildTaskKey(tr), nil

@@ -56,7 +56,6 @@ func TestLife(t *testing.T) {
 	go met.StartSlave()
 
 	met.Add(test)
-	go test.TestTimeOut()
 	met.Schedule(test.ID)
 	wg.Add(1)
 	wg.Wait()
