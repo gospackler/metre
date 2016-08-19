@@ -91,6 +91,7 @@ func (m *Metre) scheduleFromId(ID string) (string, error) {
 	// Making sure the next run is not affected by previous runs.
 	t.Zero()
 	go t.TestTimeOut()
+	t.SendMessage(t.ID + ": Scheduled")
 	t.Schedule(tr, m.Scheduler, m.Cache, m.Queue)
 	t.ScheduleDone = true
 	return buildTaskKey(tr), nil
