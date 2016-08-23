@@ -1,13 +1,5 @@
 package metre
 
-// task needs to be atomic. How can we achieve it.
-// task can exist in both schedule and process, how do we handle it.
-
-// track Messages and Schedules are possible for it.
-// Track messages update task and schedules update
-// Kill task if it hits timeout.
-// Only one task can be scheduled at a time.
-
 import (
 	log "github.com/Sirupsen/logrus"
 
