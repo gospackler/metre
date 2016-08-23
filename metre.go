@@ -88,14 +88,12 @@ func (m *Metre) scheduleFromId(ID string) (string, error) {
 
 	tr := NewTaskRecord(ID)
 	// Making sure the next run is not affected by previous runs.
-	t.TaskLock.Lock()
+	t.ScheduleLock.Lock()
 	t.Zero()
 	go t.TestTimeOut()
 	t.SendMessage(t.ID + ": Scheduled")
 	t.Schedule(tr, m.Scheduler, m.Cache, m.Queue)
-	t.ScheduleDoneLock.Lock()
-	t.ScheduleDone = true
-	t.ScheduleDoneLock.Unlock()
+	t.SetScheduleDone()
 	return buildTaskKey(tr), nil
 }
 
