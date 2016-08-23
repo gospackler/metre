@@ -41,7 +41,9 @@ func (s Scheduler) Schedule(t TaskRecord) (string, error) {
 		if err == nil {
 			task := s.TaskMap[t.ID]
 			// FIXME : The operation is better to be done from task itself.
+			task.ScheduleCountLock.Lock()
 			task.ScheduleCount++
+			task.ScheduleCountLock.Unlock()
 		}
 	}
 	return key, err

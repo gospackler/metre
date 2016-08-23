@@ -75,7 +75,7 @@ func (m *Metre) Add(t *Task) {
 	m.TaskMap[id] = t
 	t.MessageChannel = m.MessageChannel
 	m.Cron.AddFunc(t.Interval, func() {
-		m.scheduleFromId(id)
+		go m.scheduleFromId(id)
 	})
 }
 
@@ -87,13 +87,15 @@ func (m *Metre) scheduleFromId(ID string) (string, error) {
 	}
 
 	tr := NewTaskRecord(ID)
-
 	// Making sure the next run is not affected by previous runs.
+	t.TaskLock.Lock()
 	t.Zero()
 	go t.TestTimeOut()
 	t.SendMessage(t.ID + ": Scheduled")
 	t.Schedule(tr, m.Scheduler, m.Cache, m.Queue)
+	t.ScheduleDoneLock.Lock()
 	t.ScheduleDone = true
+	t.ScheduleDoneLock.Unlock()
 	return buildTaskKey(tr), nil
 }
 
@@ -124,10 +126,11 @@ func (m *Metre) StartMaster() {
 		panic(e)
 	}
 	m.Cron.Start()
+	go m.track()
 }
 
 // This function tracks if the schedules get completed.
-func (m *Metre) Track() {
+func (m *Metre) track() {
 	e := m.TrackQueue.ConnectPull()
 	if e != nil {
 		panic(e)
@@ -139,6 +142,7 @@ func (m *Metre) Track() {
 			log.Warn("Error parsing track message" + err.Error())
 		}
 		task := m.TaskMap[trackMsg.TaskId]
+		// FIXME: Race can be caused here.
 		task.Track(trackMsg)
 	}
 }

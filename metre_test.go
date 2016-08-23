@@ -55,7 +55,6 @@ func TestLife(t *testing.T) {
 	met.Add(test)
 	met.StartMaster()
 	go met.StartSlave()
-	go met.Track()
 
 	met.Schedule(test.ID)
 	wg.Add(1)
