@@ -11,18 +11,21 @@ type Cache struct {
 // Delete clears the cache value for the provided key
 func (c Cache) Delete(key string) (interface{}, error) {
     conn := c.ConnPool.Get()
+    defer conn.Close()
     return conn.Do("DEL", key)
 }
 
 // Set sets the cache value for the provided key
 func (c Cache) Set(key string, val string) (interface{}, error) {
     conn := c.ConnPool.Get()
+    defer conn.Close()
     return conn.Do("SET", key, val)
 }
 
 // Expire sets the cache value for the provided key
 func (c Cache) Expire(key string, mSeconds int) {
     conn := c.ConnPool.Get()
+    defer conn.Close()
     conn.Do("PEXPIRE", key, mSeconds)
 }
 
@@ -30,6 +33,7 @@ func (c Cache) Expire(key string, mSeconds int) {
 // Get gets the cache value for the provided key
 func (c Cache) Get(key string) (string, error) {
     conn := c.ConnPool.Get()
+    defer conn.Close()
     data, err := redis.String(conn.Do("GET", key))
     if err != nil {
         return "", err
