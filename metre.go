@@ -69,7 +69,7 @@ func New(queueUri string, trackQueueUri string, cacheUri string) (*Metre, error)
 func (m *Metre) Add(t *Task) {
 	id := t.GetID()
 	if _, exists := m.TaskMap[id]; exists {
-		panic("attempted to add two tasks with the same ID [" + t.ID + "]")
+		log.Warn("attempted to add two tasks with the same ID [" + t.ID + "]")
 	}
 
 	m.TaskMap[id] = t
@@ -121,7 +121,7 @@ func (m *Metre) Process(ID string) (string, error) {
 func (m *Metre) StartMaster() {
 	e := m.Queue.BindPush()
 	if e != nil {
-		panic(e)
+		log.Warn(e)
 	}
 	m.Cron.Start()
 	go m.track()
@@ -131,7 +131,7 @@ func (m *Metre) StartMaster() {
 func (m *Metre) track() {
 	e := m.TrackQueue.ConnectPull()
 	if e != nil {
-		panic(e)
+		log.Warn("Track queue connectpull crash :" + e.Error())
 	}
 	for {
 		msg := m.TrackQueue.Pop()
@@ -165,7 +165,7 @@ func (m *Metre) StartSlave() {
 
 	e := m.Queue.ConnectPull()
 	if e != nil {
-		panic(e)
+		log.Warn("Error while starting slave", e.Error())
 	}
 	for {
 		msg := m.Queue.Pop()
