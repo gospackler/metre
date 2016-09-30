@@ -22,10 +22,11 @@ type Metre struct {
 	Scheduler      Scheduler
 	TaskMap        map[string]*Task
 	MessageChannel chan string
+	LimitChan      chan int
 }
 
 // New creates a new scheduler to manage task scheduling and states
-func New(queueUri string, trackQueueUri string, cacheUri string) (*Metre, error) {
+func New(queueUri string, trackQueueUri string, cacheUri string, maxParallel int) (*Metre, error) {
 	if cacheUri == "" {
 		cacheUri = LOCALHOST + ":" + CACHEPORT
 	} else if strings.Index(cacheUri, ":") == 0 {
@@ -59,10 +60,11 @@ func New(queueUri string, trackQueueUri string, cacheUri string) (*Metre, error)
 		return nil, tErr
 	}
 
+	limitChan := make(chan int, maxParallel)
 	m := make(map[string]*Task)
 	s := NewScheduler(q, c, m)
 	msgChan := make(chan string)
-	return &Metre{cron, q, t, c, s, m, msgChan}, nil
+	return &Metre{cron, q, t, c, s, m, msgChan, limitChan}, nil
 }
 
 // Add adds a cron job task to schedule and process
@@ -147,7 +149,9 @@ func (m *Metre) track() {
 
 func (m *Metre) runAndSendComplete(tr TaskRecord) {
 	tsk := m.TaskMap[tr.ID]
+	m.LimitChan <- 1
 	tsk.Process(tr, m.Scheduler, m.Cache, m.Queue)
+	<-m.LimitChan
 	// The content do not matter as this is used for counting messages.
 	// TODO Could add the success or failure of the task in future.
 	statusMsg := createMsg(Status, tr.ID, tr.UID, "")
@@ -167,6 +171,8 @@ func (m *Metre) StartSlave() {
 	if e != nil {
 		log.Warn("Error while starting slave", e.Error())
 	}
+
+	defer close(m.LimitChan)
 	for {
 		msg := m.Queue.Pop()
 		tr, _ := ParseTask(msg)
