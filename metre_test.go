@@ -19,7 +19,7 @@ var test = &Task{
 		for i := 0; i < 10; i++ {
 			t.UID = fmt.Sprintf("%d", i)
 			log.Info("Scheduling test " + t.UID)
-			time.Sleep(time.Second)
+			//	time.Sleep(time.Second)
 			s.Schedule(t)
 		}
 		return
@@ -45,7 +45,7 @@ func printMsgs(msgChan chan string) {
 
 func TestLife(t *testing.T) {
 	var wg sync.WaitGroup
-	met, err := New("127.0.0.1:5555", "127.0.0.1:5556", "")
+	met, err := New("127.0.0.1:5555", "127.0.0.1:5556", "", 1)
 	if err != nil {
 		t.Errorf("Metre creation error" + err.Error())
 	}
