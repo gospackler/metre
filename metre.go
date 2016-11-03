@@ -120,7 +120,7 @@ func (m *Metre) StartMaster() {
 
 // This function tracks if the schedules get completed.
 func (m *Metre) track() {
-	e := m.TrackQueue.ConnectPull()
+	e := m.TrackQueue.BindPull()
 	if e != nil {
 		log.Warn("Track queue connectpull crash :" + e.Error())
 	}
@@ -151,7 +151,7 @@ func (m *Metre) runAndSendComplete(tr TaskRecord) {
 }
 
 func (m *Metre) StartSlave() {
-	err := m.TrackQueue.BindPush()
+	err := m.TrackQueue.ConnectPush()
 	if err != nil {
 		log.Warn("Track queue not working properly ", err.Error())
 	}
