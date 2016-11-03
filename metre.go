@@ -18,7 +18,6 @@ type Metre struct {
 	Cron           cron.Cron
 	Queue          Queue
 	TrackQueue     Queue
-	Cache          Cache
 	Scheduler      Scheduler
 	TaskMap        map[string]*Task
 	MessageChannel chan string
@@ -26,13 +25,7 @@ type Metre struct {
 }
 
 // New creates a new scheduler to manage task scheduling and states
-func New(queueUri string, trackQueueUri string, cacheUri string, maxParallel int) (*Metre, error) {
-	if cacheUri == "" {
-		cacheUri = LOCALHOST + ":" + CACHEPORT
-	} else if strings.Index(cacheUri, ":") == 0 {
-		cacheUri = LOCALHOST + ":" + cacheUri
-	}
-
+func New(queueUri string, trackQueueUri string, maxParallel int) (*Metre, error) {
 	if queueUri == "" {
 		queueUri = LOCALHOST + ":" + QUEUEPORT
 	} else if strings.Index(queueUri, ":") == 0 {
@@ -46,10 +39,6 @@ func New(queueUri string, trackQueueUri string, cacheUri string, maxParallel int
 	}
 
 	cron := *cron.New()
-	c, cErr := NewCache(cacheUri)
-	if cErr != nil {
-		return nil, cErr
-	}
 	q, qErr := NewQueue(queueUri)
 	if qErr != nil {
 		return nil, qErr
@@ -62,9 +51,9 @@ func New(queueUri string, trackQueueUri string, cacheUri string, maxParallel int
 
 	limitChan := make(chan int, maxParallel)
 	m := make(map[string]*Task)
-	s := NewScheduler(q, c, m)
+	s := NewScheduler(q, m)
 	msgChan := make(chan string)
-	return &Metre{cron, q, t, c, s, m, msgChan, limitChan}, nil
+	return &Metre{cron, q, t, s, m, msgChan, limitChan}, nil
 }
 
 // Add adds a cron job task to schedule and process
@@ -94,7 +83,7 @@ func (m *Metre) scheduleFromId(ID string) (string, error) {
 	t.Zero()
 	go t.TestTimeOut()
 	t.SendMessage(t.ID + ": Scheduled")
-	t.Schedule(tr, m.Scheduler, m.Cache, m.Queue)
+	t.Schedule(tr, m.Scheduler, m.Queue)
 	t.SetScheduleDone()
 	return buildTaskKey(tr), nil
 }
@@ -116,7 +105,7 @@ func (m *Metre) Process(ID string) (string, error) {
 	}
 
 	tr := NewTaskRecord(ID)
-	t.Process(tr, m.Scheduler, m.Cache, m.Queue)
+	t.Process(tr, m.Scheduler, m.Queue)
 	return buildTaskKey(tr), nil
 }
 
@@ -131,7 +120,7 @@ func (m *Metre) StartMaster() {
 
 // This function tracks if the schedules get completed.
 func (m *Metre) track() {
-	e := m.TrackQueue.ConnectPull()
+	e := m.TrackQueue.BindPull()
 	if e != nil {
 		log.Warn("Track queue connectpull crash :" + e.Error())
 	}
@@ -150,7 +139,7 @@ func (m *Metre) track() {
 func (m *Metre) runAndSendComplete(tr TaskRecord) {
 	tsk := m.TaskMap[tr.ID]
 	m.LimitChan <- 1
-	tsk.Process(tr, m.Scheduler, m.Cache, m.Queue)
+	tsk.Process(tr, m.Scheduler, m.Queue)
 	<-m.LimitChan
 	// The content do not matter as this is used for counting messages.
 	// TODO Could add the success or failure of the task in future.
@@ -162,7 +151,7 @@ func (m *Metre) runAndSendComplete(tr TaskRecord) {
 }
 
 func (m *Metre) StartSlave() {
-	err := m.TrackQueue.BindPush()
+	err := m.TrackQueue.ConnectPush()
 	if err != nil {
 		log.Warn("Track queue not working properly ", err.Error())
 	}
@@ -181,7 +170,6 @@ func (m *Metre) StartSlave() {
 			continue
 		}
 
-		m.Cache.Delete(buildTaskKey(tr))
 		go m.runAndSendComplete(tr)
 	}
 }
