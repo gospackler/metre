@@ -18,8 +18,8 @@ type Task struct {
 	ScheduleDone   bool
 	ID             string // Type Type of task (user as class prefix in cache)
 	Interval       string // Schedule String in cron notation
-	Schedule       func(t TaskRecord, s Scheduler, c Cache, q Queue)
-	Process        func(t TaskRecord, s Scheduler, c Cache, q Queue)
+	Schedule       func(t TaskRecord, s Scheduler, q Queue)
+	Process        func(t TaskRecord, s Scheduler, q Queue)
 }
 
 func (t Task) GetID() string {
