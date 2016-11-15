@@ -1,11 +1,11 @@
 package transport
 
 import (
+	log "github.com/Sirupsen/logrus"
 	zmq "github.com/pebbe/zmq4"
-
-	"fmt"
 )
 
+// Abstraction of the zmq request.
 type ReqConn struct {
 	Conn *Connection
 }
@@ -21,7 +21,7 @@ func NewReqConn(uri string) (*ReqConn, error) {
 		return nil, err
 	}
 
-	fmt.Println("Req connected to " + uri)
+	log.Debug("Req connected to " + uri)
 	return &ReqConn{
 		Conn: conn,
 	}, nil
@@ -30,13 +30,13 @@ func NewReqConn(uri string) (*ReqConn, error) {
 // This is the client for the request.
 // Like a web client, a Send is always followed by a recieve.
 func (r *ReqConn) MakeReq(msg string) (string, error) {
-	fmt.Println("Making request with message", msg)
+	log.Debug("Making request with message", msg)
 	_, err := r.Conn.Sock.Send(msg, zmq.DONTWAIT)
 	if err != nil {
 		return "", err
 	}
 
-	fmt.Println("Sent message waiting for resp")
+	log.Debug("Sent message waiting for resp")
 	reply, err := r.Conn.Sock.Recv(0)
 	if err != nil {
 		return "", err

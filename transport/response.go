@@ -3,8 +3,6 @@ package transport
 import (
 	log "github.com/Sirupsen/logrus"
 	zmq "github.com/pebbe/zmq4"
-
-	"fmt"
 )
 
 type Process interface {
@@ -26,7 +24,7 @@ func NewRespConn(uri string) (*RespConn, error) {
 		return nil, err
 	}
 
-	fmt.Println("Response Server conected to " + uri)
+	log.Debug("Response Server conected to " + uri)
 
 	return &RespConn{
 		Conn: conn,
@@ -44,7 +42,7 @@ func (r *RespConn) Listen(process Process, id int) error {
 			return err
 		}
 		resp := process.GetResponse(req)
-		log.Info(id, " processed response from run ", resp)
+		log.Debug(id, " processed response from run ", resp)
 		// Send reply back to client
 		_, err = r.Conn.Sock.Send(resp, zmq.DONTWAIT)
 		if err != nil {

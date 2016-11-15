@@ -11,6 +11,10 @@ import (
 	"github.com/robfig/cron"
 )
 
+// Master is the representation of a master server.
+// It can register tasks which gets scheduled periodically.
+// Multiple master instances can connect to a broker.
+// The schParallel defines the number of request connections to the broker.
 type Master struct {
 	Cron        cron.Cron
 	SchInpChan  chan *SchInput
@@ -53,7 +57,7 @@ func (m *Master) Start() {
 	}
 	go func() {
 		for {
-			log.Info("Masters scheduler listening for messsages")
+			log.Debug("Masters scheduler listening for messsages")
 			s := <-m.SchInpChan
 			// Add go routine for parallel
 			r := <-reqConnChan
@@ -76,15 +80,15 @@ func (m *Master) AddTask(t *Task) {
 	}
 
 	m.TaskMap[id] = t
-	log.Info("Adding cron task to Master" + t.ID)
+	log.Debug("Adding cron task to Master" + t.ID)
 	m.Cron.AddFunc(t.Interval, func() {
-		log.Info("Cron triggered")
+		log.Debug("Cron triggered")
 		go m.scheduleFromId(id)
 	})
 }
 
 func (m *Master) scheduleFromId(ID string) error {
-	log.Info("About to schedule ID " + ID)
+	log.Debug("About to schedule ID " + ID)
 	var t *Task
 	var ok bool
 	if t, ok = m.TaskMap[ID]; !ok {
@@ -101,6 +105,7 @@ func (m *Master) scheduleFromId(ID string) error {
 	return nil
 }
 
+// FIXME : Scheduling happens here. Is this the right design ?
 func (m *Master) Schedule(taskId string, uid string) (string, error) {
 	msg := CreateMsg(Request, taskId, uid, "")
 	req := NewScheduleInput(msg)
@@ -108,7 +113,11 @@ func (m *Master) Schedule(taskId string, uid string) (string, error) {
 	defer req.Close()
 	select {
 	case resp := <-req.RespChan:
-		return resp, nil
+		cleanResp, err := CleanResponseMessage(resp)
+		if err != nil {
+			return "", err
+		}
+		return cleanResp, nil
 	case err := <-req.ErrorChan:
 		return "", err
 	}

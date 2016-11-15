@@ -1,9 +1,8 @@
 package transport
 
 import (
+	log "github.com/Sirupsen/logrus"
 	zmq "github.com/pebbe/zmq4"
-
-	"fmt"
 )
 
 // Create a new queue.
@@ -19,7 +18,7 @@ func StartBroker(du string, ru string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println("Dealer bound to " + du)
+	log.Debug("Dealer bound to " + du)
 	err = dSock.Bind(du)
 	if err != nil {
 		return err
@@ -29,64 +28,30 @@ func StartBroker(du string, ru string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println("Router bound to " + ru)
+	log.Debug("Router bound to " + ru)
 	err = rSock.Bind(ru)
 	if err != nil {
 		return err
 	}
-	/*
-		go func() {
-			for {
-				fmt.Println("Waiting for messages on router")
-				msg, err := rSock.RecvMessage(0)
-				if err != nil {
-					fmt.Println(err.Error())
-				}
-				fmt.Println(msg)
-				fmt.Println("Received in router ", msg)
-				_, err = dSock.SendMessage(msg, zmq.DONTWAIT)
-				if err != nil {
-					fmt.Println(err.Error())
-				}
-			}
-		}()
-
-		go func() {
-			for {
-				fmt.Println("Waiting for messages on dealer")
-				msg, err := dSock.RecvMessage(0)
-				if err != nil {
-					fmt.Println(err.Error())
-				}
-				fmt.Println("Received in dealer ", msg)
-				_, err = rSock.SendMessage(msg, zmq.DONTWAIT)
-				if err != nil {
-					fmt.Println(err.Error())
-				}
-				fmt.Println(msg)
-			}
-		}()
-	*/
 	poller := zmq.NewPoller()
 	poller.Add(dSock, zmq.POLLIN)
 	poller.Add(rSock, zmq.POLLIN)
 
 	for {
-		fmt.Println("Polling for messsages on broker")
+		log.Debug("Polling for messsages on broker")
 		sockets, err := poller.Poll(-1)
 		if err != nil {
 			return err
 		}
 		for _, socket := range sockets {
-			fmt.Println("Received something on the socket ... ")
+			log.Debug("Received something on the socket ... ")
 			switch s := socket.Socket; s {
 			case dSock:
-				// FIXME - Should we wait ?
 				msg, err := s.RecvMessage(zmq.DONTWAIT)
 				if err != nil {
 					return err
 				}
-				fmt.Println("Received in dealer ", msg)
+				log.Debug("Received in dealer ", msg)
 				_, err = rSock.SendMessage(msg)
 				if err != nil {
 					return err
@@ -97,7 +62,7 @@ func StartBroker(du string, ru string) error {
 					return err
 				}
 
-				fmt.Println("Received in router ", msg)
+				log.Debug("Received in router ", msg)
 				_, err = dSock.SendMessage(msg)
 				if err != nil {
 					return err

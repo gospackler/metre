@@ -7,6 +7,8 @@ import (
 	"github.com/gospackler/metre/transport"
 )
 
+// Slave has a set of workers which listens for request's
+// Each of these workers, work in parallel, thanks to ZMQ
 type Slave struct {
 	TaskMap     map[string]*Task
 	workerCount int
@@ -54,7 +56,7 @@ func (s *Slave) GetResponse(m string) string {
 }
 
 func (s *Slave) Listen(id int) {
-	log.Info("Start Slave ", id)
+	log.Debug("Start Slave ", id)
 	respConn, err := transport.NewRespConn(s.dealerUri)
 	if err != nil {
 		log.Error("Error starting slave " + err.Error())

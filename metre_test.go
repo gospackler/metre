@@ -1,12 +1,11 @@
 package metre
 
 import (
-	"testing"
-
+	"errors"
 	"fmt"
 	"os"
 	"sync"
-	//	"time"
+	"testing"
 
 	log "github.com/Sirupsen/logrus"
 )
@@ -28,7 +27,8 @@ var test = &Task{
 	},
 	Process: func(msg *MetreMessage) (string, error) {
 		log.Info("Processing Test  " + msg.UID)
-		return msg.TaskId + msg.UID, nil
+		//	return msg.TaskId + msg.UID, nil
+		return "", errors.New("Test error ->" + msg.UID)
 	},
 }
 
