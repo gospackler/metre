@@ -12,21 +12,35 @@ import (
 )
 
 var test = &Task{
-	TimeOut:  time.Second * 5,
 	ID:       "Test",
 	Interval: "0 * * * * *",
-	Schedule: func(t TaskRecord, s Scheduler, q Queue) {
+	Schedule: func(m *Master) error {
+
 		for i := 0; i < 10; i++ {
-			t.UID = fmt.Sprintf("%d", i)
-			log.Info("Scheduling test " + t.UID)
+			uid := fmt.Sprintf("%d", i)
+			log.Info("Scheduling test ")
 			time.Sleep(time.Second)
-			s.Schedule(t)
+
+			// Create a utility function to do it.
+			//endChan := make(chan int)
+			msg := CreateMsg(Request, "Test", uid, "")
+			req := NewScheduleInput(msg)
+			m.SchInpChan <- req
+			select {
+			case resp := <-req.RespChan:
+				log.Info("Received resp" + resp)
+			case err := <-req.ErrorChan:
+				log.Info("Error received" + err.Error())
+				break
+			}
+			log.Info("Outside the infinite loop")
+			defer req.Close()
 		}
-		return
+		return nil
 	},
-	Process: func(t TaskRecord, s Scheduler, q Queue) {
-		log.Info("Processing Test  " + t.UID)
-		return
+	Process: func(msg *MetreMessage) (string, error) {
+		log.Info("Processing Test  " + msg.UID)
+		return msg.TaskId + msg.UID, nil
 	},
 }
 
@@ -44,19 +58,51 @@ func printMsgs(msgChan chan string) {
 }
 
 func TestLife(t *testing.T) {
+	/*
+		var wg sync.WaitGroup
+		met, err := New("127.0.0.1:5555", "127.0.0.1:5556", 1)
+		if err != nil {
+			t.Errorf("Metre creation error" + err.Error())
+		}
+
+		printMsgs(met.MessageChannel)
+
+		met.Add(test)
+		met.StartMaster()
+		go met.StartSlave()
+
+		met.Schedule(test.ID)
+		wg.Add(1)
+		wg.Wait()
+	*/
+}
+
+func TestMasterSlave(t *testing.T) {
 	var wg sync.WaitGroup
-	met, err := New("127.0.0.1:5555", "127.0.0.1:5556", 1)
+	dealerUri := "tcp://127.0.0.1:5555"
+	routerUri := "tcp://127.0.0.1:5556"
+	master, err := NewMaster(routerUri, 2)
 	if err != nil {
-		t.Errorf("Metre creation error" + err.Error())
+		t.Error(err.Error())
 	}
 
-	printMsgs(met.MessageChannel)
+	StartBroker(dealerUri, routerUri)
 
+	slave, err := NewSlave(dealerUri, 2)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	met, err := New(master, slave)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	// Add the task to both master and slave.
 	met.Add(test)
-	met.StartMaster()
-	go met.StartSlave()
+	printMsgs(met.MessageChannel)
+	master.Start()
 
-	met.Schedule(test.ID)
 	wg.Add(1)
 	wg.Wait()
 }
