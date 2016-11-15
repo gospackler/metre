@@ -54,22 +54,6 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-/*
-func TestSimpleReqResp(t *testing.T) {
-	url := "tcp://localhost:5556"
-	reqConn, err := NewReqConn(url)
-	if err != nil {
-		t.Errorf(err.Error())
-	}
-	req := "abcd"
-	resp, err := reqConn.MakeReq(req)
-	if err != nil {
-		t.Errorf(err.Error())
-	}
-	t.Log(resp + " obtained for req " + req)
-}
-*/
-
 func TestLife(t *testing.T) {
 	t.Log("Test transport")
 	go startBroker(t)
