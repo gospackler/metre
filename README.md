@@ -5,11 +5,10 @@ Golang cron framework. Scheduling through ØMQ push-pull and state managed throu
 ## Requirements
 
 - [ØMQ](http://zeromq.org/)
-- [Redis](http://redis.io/)
 
 ## Installation
 
-`go get github.com/johnhof/metre`
+`go get github.com/gospackler/metre`
 
 ## Documentation
 
@@ -19,59 +18,11 @@ Golang cron framework. Scheduling through ØMQ push-pull and state managed throu
 
 ## Example
 
-```Go
-// Package main demo's metre
-package main
-
-import (
-	"github.com/bushwood/metre"
-
-	log "github.com/Sirupsen/logrus"
-)
-
-func main() {
-
-	// Create
-	m, _ := metre.New("127.0.0.1:5555", "127.0.0.1:6379") // (zmq, redis)
-
-	// Add tasks
-	m.Add(metre.Task{
-		ID:       "F",             // used to prevent collision across tasks
-		Interval: "0/1 * * * * *", // Cron expression
-		Schedule: func(t metre.TaskRecord, s metre.Scheduler, c metre.Cache, q metre.Queue) {
-			t.UID = "TestID"      // overwrite the generated UID with a static namespace
-			s.Schedule(t)         // only schedules if "TestID" is not being processed ("F-TestId" not cached in a processing state)
-			s.SetExpire(t, 15000) // set expire in milliseconds
-		},
-		Process: func(t metre.TaskRecord, s metre.Scheduler, c metre.Cache, q metre.Queue) {
-			log.Info("Task 1 Processing: " + t.UID)
-		},
-	})
-
-	m.Add(metre.Task{
-		ID:       "B",                          // used to prevent collision across tasks
-		Interval: "0,10,20,30,40,50 * * * * *", // every 10 seconds
-		Schedule: func(t metre.TaskRecord, s metre.Scheduler, c metre.Cache, q metre.Queue) {
-			t.UID = "TestID"   // overwrite the generated UID with a static namespace
-			s.ForceSchedule(t) // schedule regardless of task state
-		},
-		Process: func(t metre.TaskRecord, s metre.Scheduler, c metre.Cache, q metre.Queue) {
-			log.Info("Task 2 Processing: " + t.UID)
-		},
-	})
-
-	go m.StartSlave() // run slave in background
-	m.StartMaster()   // run master
-
-	c := make(chan int)
-	<-c // infinite wait so as to view the output
-
-	// this approach means we can run master and slave
-	// on separate servers from the same code base
-	// allowing us to scale them separately
-}
+```
+Check TestMasterSlave() function in metre_test.go
 ```
 
 ## Authors
 
-- [John M Hofrichter](www.github.com/johnhof)
+- [John M Hofrichter](https://github.com/johnhof)
+- [George Thomas](https://github.com/georgethomas111)
