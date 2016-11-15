@@ -16,7 +16,7 @@ const (
 type RunWrap struct {
 }
 
-func (r *RunWrap) Run(msg string) string {
+func (r *RunWrap) GetResponse(msg string) string {
 	respMsg := "Resp " + msg
 	fmt.Println("Received messsage in RUN" + msg)
 	return respMsg
@@ -30,17 +30,24 @@ func startBroker(t *testing.T) {
 }
 
 func listen(t *testing.T) {
-	respConn, err := NewRespConn(dealerUri)
-	if err != nil {
-		t.Errorf(err.Error())
+	limitChan := make(chan int, 10)
+	for {
+		limitChan <- 1
+		go func() {
+			respConn, err := NewRespConn(dealerUri)
+			if err != nil {
+				t.Errorf(err.Error())
+			}
+			r := new(RunWrap)
+			err = respConn.Listen(r, -1)
+			if err != nil {
+				t.Errorf(err.Error())
+			}
+			// Should never get called.
+			respConn.Close()
+			<-limitChan
+		}()
 	}
-	r := new(RunWrap)
-	err = respConn.Listen(r)
-	if err != nil {
-		t.Errorf(err.Error())
-	}
-	// Should never get called.
-	respConn.Close()
 }
 
 func TestMain(m *testing.M) {

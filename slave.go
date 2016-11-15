@@ -8,8 +8,9 @@ import (
 )
 
 type Slave struct {
-	RespConn *transport.RespConn
-	TaskMap  map[string]*Task
+	TaskMap     map[string]*Task
+	workerCount int
+	dealerUri   string
 }
 
 // FIXME : Use procesParallel in some way.
@@ -19,16 +20,12 @@ func NewSlave(dealerUri string, processParallel int) (*Slave, error) {
 	} else if strings.Index(dealerUri, ":") == 0 {
 		dealerUri = LocalHost + ":" + DealerPort
 	}
-	respConn, err := transport.NewRespConn(dealerUri)
-	if err != nil {
-		return nil, err
-	}
-
 	slave := &Slave{
-		RespConn: respConn,
-		TaskMap:  make(map[string]*Task),
+		TaskMap:     make(map[string]*Task),
+		workerCount: processParallel,
+		dealerUri:   dealerUri,
 	}
-	slave.StartSlave()
+	go slave.StartSlave()
 	return slave, nil
 }
 
@@ -41,7 +38,7 @@ func (s *Slave) AddTask(t *Task) {
 	s.TaskMap[id] = t
 }
 
-func (s *Slave) Run(m string) string {
+func (s *Slave) GetResponse(m string) string {
 	msg, err := ParseMessage(m)
 	if err != nil {
 		return CreateErrorMsg(err, msg.TaskId, msg.UID)
@@ -56,12 +53,22 @@ func (s *Slave) Run(m string) string {
 	return CreateMsg(Error, msg.TaskId, msg.UID, "Task Id not found in the message")
 }
 
+func (s *Slave) Listen(id int) {
+	log.Info("Start Slave ", id)
+	respConn, err := transport.NewRespConn(s.dealerUri)
+	if err != nil {
+		log.Error("Error starting slave " + err.Error())
+	}
+
+	err = respConn.Listen(s, id)
+	if err != nil {
+		log.Error("Slave start error " + err.Error())
+	}
+	respConn.Close()
+}
+
 func (s *Slave) StartSlave() {
-	go func() {
-		err := s.RespConn.Listen(s)
-		if err != nil {
-			log.Error("Slave start error " + err.Error())
-		}
-		defer s.RespConn.Close()
-	}()
+	for i := 0; i < s.workerCount; i++ {
+		go s.Listen(i)
+	}
 }

@@ -11,30 +11,12 @@ import (
 	"github.com/robfig/cron"
 )
 
-type SchInput struct {
-	Input     string
-	RespChan  chan string
-	ErrorChan chan error
-}
-
-func NewScheduleInput(inp string) *SchInput {
-	return &SchInput{
-		Input:     inp,
-		RespChan:  make(chan string),
-		ErrorChan: make(chan error),
-	}
-}
-
-func (s *SchInput) Close() {
-	close(s.RespChan)
-	close(s.ErrorChan)
-}
-
 type Master struct {
-	Cron       cron.Cron
-	SchInpChan chan *SchInput
-	ReqConn    *transport.ReqConn
-	TaskMap    map[string]*Task
+	Cron        cron.Cron
+	SchInpChan  chan *SchInput
+	TaskMap     map[string]*Task
+	schParallel int
+	routerUri   string
 }
 
 // Remove dealer from the picture in Master.
@@ -45,34 +27,44 @@ func NewMaster(routerUri string, schParallel int) (*Master, error) {
 		routerUri = LocalHost + ":" + RouterPort
 	}
 
-	reqConn, err := transport.NewReqConn(routerUri)
-	if err != nil {
-		return nil, err
-	}
 	cron := *cron.New()
 
-	schInpChan := make(chan *SchInput, schParallel)
+	schInpChan := make(chan *SchInput)
 
 	master := &Master{
-		Cron:       cron,
-		ReqConn:    reqConn,
-		SchInpChan: schInpChan,
-		TaskMap:    make(map[string]*Task),
+		Cron:        cron,
+		routerUri:   routerUri,
+		SchInpChan:  schInpChan,
+		TaskMap:     make(map[string]*Task),
+		schParallel: schParallel,
 	}
 	return master, nil
 }
 
 func (m *Master) Start() {
 	m.Cron.Start()
+	reqConnChan := make(chan *transport.ReqConn, m.schParallel)
+	for i := 0; i < m.schParallel; i++ {
+		reqConn, err := transport.NewReqConn(m.routerUri)
+		if err != nil {
+			log.Error("Request connection error " + err.Error())
+		}
+		reqConnChan <- reqConn
+	}
 	go func() {
 		for {
 			log.Info("Masters scheduler listening for messsages")
-			schInp := <-m.SchInpChan
-			resp, err := m.ReqConn.MakeReq(schInp.Input)
-			if err != nil {
-				schInp.ErrorChan <- err
-			}
-			schInp.RespChan <- resp
+			s := <-m.SchInpChan
+			// Add go routine for parallel
+			r := <-reqConnChan
+			go func(schInp *SchInput, reqConn *transport.ReqConn) {
+				resp, err := reqConn.MakeReq(schInp.Input)
+				if err != nil {
+					schInp.ErrorChan <- err
+				}
+				schInp.RespChan <- resp
+				reqConnChan <- reqConn
+			}(s, r)
 		}
 	}()
 }
@@ -107,4 +99,18 @@ func (m *Master) scheduleFromId(ID string) error {
 	t.SendMessage(t.ID + ": Time taken " + time.Since(t.StartTime).String())
 	t.Unlock()
 	return nil
+}
+
+func (m *Master) Schedule(taskId string, uid string) (string, error) {
+	msg := CreateMsg(Request, taskId, uid, "")
+	req := NewScheduleInput(msg)
+	m.SchInpChan <- req
+	defer req.Close()
+	select {
+	case resp := <-req.RespChan:
+		return resp, nil
+	case err := <-req.ErrorChan:
+		return "", err
+	}
+	return "", nil
 }

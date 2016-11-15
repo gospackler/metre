@@ -1,13 +1,14 @@
 package transport
 
 import (
+	log "github.com/Sirupsen/logrus"
 	zmq "github.com/pebbe/zmq4"
 
 	"fmt"
 )
 
 type Process interface {
-	Run(string) string
+	GetResponse(string) string
 }
 
 type RespConn struct {
@@ -33,18 +34,17 @@ func NewRespConn(uri string) (*RespConn, error) {
 }
 
 // Call this function from a goroutine
-func (r *RespConn) Listen(process Process) error {
+func (r *RespConn) Listen(process Process, id int) error {
 	// FIXME : Probably stream the errors and log it in if the server
 	// continues to crash with listen errors.
 	for {
-		fmt.Println("Listener waiting for message .. ")
 		//  Wait for next request from client
 		req, err := r.Conn.Sock.Recv(0)
 		if err != nil {
 			return err
 		}
-		resp := process.Run(req)
-		fmt.Println("Received response from Run ", resp)
+		resp := process.GetResponse(req)
+		log.Info(id, " processed response from run ", resp)
 		// Send reply back to client
 		_, err = r.Conn.Sock.Send(resp, zmq.DONTWAIT)
 		if err != nil {
