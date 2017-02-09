@@ -83,11 +83,11 @@ func (m *Master) AddTask(t *Task) {
 	log.Debug("Adding cron task to Master" + t.ID)
 	m.Cron.AddFunc(t.Interval, func() {
 		log.Debug("Cron triggered")
-		go m.scheduleFromId(id)
+		go m.ScheduleFromId(id)
 	})
 }
 
-func (m *Master) scheduleFromId(ID string) error {
+func (m *Master) ScheduleFromId(ID string) error {
 	log.Debug("About to schedule ID " + ID)
 	var t *Task
 	var ok bool
