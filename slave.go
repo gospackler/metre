@@ -1,6 +1,7 @@
 package metre
 
 import (
+	"fmt"
 	"strings"
 
 	log "github.com/Sirupsen/logrus"
@@ -40,12 +41,20 @@ func (s *Slave) AddTask(t *Task) {
 	s.TaskMap[id] = t
 }
 
-func (s *Slave) GetResponse(m string) string {
+func (s *Slave) GetResponse(m string) (ret string) {
 	msg, err := ParseMessage(m)
 	if err != nil {
 		return CreateErrorMsg(err, msg.TaskId, msg.UID)
 	}
 	if s.TaskMap[msg.TaskId] != nil {
+		// Recover from jobs that potentially panic.
+		defer func() {
+			if r := recover(); r != nil {
+				log.Error("Recovered in metre.slave.GetResponse")
+				ret = CreateErrorMsg(fmt.Errorf("Panic while processing task with error: %s", r), msg.TaskId, msg.UID)
+			}
+		}()
+
 		resp, err := s.TaskMap[msg.TaskId].Process(msg)
 		if err != nil {
 			return CreateErrorMsg(err, msg.TaskId, msg.UID)
