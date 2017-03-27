@@ -41,27 +41,48 @@ func (s *Slave) AddTask(t *Task) {
 	s.TaskMap[id] = t
 }
 
+func (s *Slave) logGetResponseInfo(message string, payload *MetreMessage) {
+	log.Info(fmt.Sprintf("metre.slave.GetResponse: %s - taskId:%s, uid:%s, jobGUID:%s",
+		message,
+		payload.TaskId,
+		payload.UID,
+		payload.JobGUID))
+}
+
+func (s *Slave) logGetResponseErr(message string, payload *MetreMessage) {
+	log.Error(fmt.Sprintf("metre.slave.GetResponse: %s - taskId:%s, uid:%s, jobGUID:%s",
+		message,
+		payload.TaskId,
+		payload.UID,
+		payload.JobGUID))
+}
+
 func (s *Slave) GetResponse(m string) (ret string) {
 	msg, err := ParseMessage(m)
 	if err != nil {
-		return CreateErrorMsg(err, msg.TaskId, msg.UID)
+		return CreateErrorMsg(err, msg.TaskId, msg.UID, msg.JobGUID)
 	}
+	s.logGetResponseInfo("Deserialized job", msg)
 	if s.TaskMap[msg.TaskId] != nil {
 		// Recover from jobs that potentially panic.
 		defer func() {
 			if r := recover(); r != nil {
-				log.Error("Recovered in metre.slave.GetResponse")
-				ret = CreateErrorMsg(fmt.Errorf("Panic while processing task with error: %s", r), msg.TaskId, msg.UID)
+				s.logGetResponseErr("Job panicked", msg)
+				ret = CreateErrorMsg(fmt.Errorf("Panic while processing task with error: %s", r), msg.TaskId, msg.UID, msg.JobGUID)
 			}
 		}()
 
+		s.logGetResponseInfo("About to process job", msg)
 		resp, err := s.TaskMap[msg.TaskId].Process(msg)
 		if err != nil {
-			return CreateErrorMsg(err, msg.TaskId, msg.UID)
+			s.logGetResponseErr("Job returned an error while processing", msg)
+			return CreateErrorMsg(err, msg.TaskId, msg.UID, msg.JobGUID)
 		}
-		return CreateMsg(Status, msg.TaskId, msg.UID, resp)
+		s.logGetResponseInfo("Process job completed", msg)
+		return SerializeMsg(CreateMsg(Status, msg.TaskId, msg.UID, msg.JobGUID, resp))
 	}
-	return CreateMsg(Error, msg.TaskId, msg.UID, "Task Id not found in the message")
+	s.logGetResponseErr("Task not found for job", msg)
+	return SerializeMsg(CreateMsg(Error, msg.TaskId, msg.UID, msg.JobGUID, "Task Id not found in the message"))
 }
 
 func (s *Slave) Listen(id int) {
