@@ -16,9 +16,12 @@ const (
 
 // The set of messages metre passes between master and slave.
 type MetreMessage struct {
+	// JobGUID is the low-level unique id that metre will track between master and slaves.
+	JobGUID string `json:"job_guid"`
+	// UID is the application level unique id that the app can track for it's own purpose.
+	UID         string  `json:"uid"`
 	MessageType msgType `json:"msg_type"`
 	TaskId      string  `json:"task_id"`
-	UID         string  `json:"uid"`
 	Message     string  `json:"message"`
 }
 
@@ -49,17 +52,21 @@ func CleanResponseMessage(msg string) (string, error) {
 	return replyMsg, err
 }
 
-func CreateMsg(mt msgType, id, uid, msg string) string {
-	msgObj := &MetreMessage{
+func CreateMsg(mt msgType, id, uid, jobguid, msg string) *MetreMessage {
+	return &MetreMessage{
+		JobGUID:     jobguid,
 		MessageType: mt,
 		TaskId:      id,
 		UID:         uid,
 		Message:     msg,
 	}
+}
+
+func SerializeMsg(msgObj *MetreMessage) string {
 	byteMsg, _ := json.Marshal(msgObj)
 	return string(byteMsg)
 }
 
-func CreateErrorMsg(err error, id string, uid string) string {
-	return CreateMsg(Error, id, uid, err.Error())
+func CreateErrorMsg(err error, id, uid, jobguid string) string {
+	return SerializeMsg(CreateMsg(Error, id, uid, jobguid, err.Error()))
 }

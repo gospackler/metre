@@ -3,12 +3,14 @@ package metre
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/gospackler/metre/transport"
 	"github.com/robfig/cron"
+	uuid "github.com/satori/go.uuid"
 )
 
 // Master is the representation of a master server.
@@ -105,21 +107,45 @@ func (m *Master) ScheduleFromId(ID string) error {
 	return nil
 }
 
+func (m *Master) logScheduleInfo(message string, payload *MetreMessage) {
+	log.Info(fmt.Sprintf("metre.master.Schedule: %s - taskId:%s, uid:%s, jobGUID:%s",
+		message,
+		payload.TaskId,
+		payload.UID,
+		payload.JobGUID))
+}
+
+func (m *Master) logScheduleErr(message string, payload *MetreMessage) {
+	log.Error(fmt.Sprintf("metre.master.Schedule: %s - taskId:%s, uid:%s, jobGUID:%s",
+		message,
+		payload.TaskId,
+		payload.UID,
+		payload.JobGUID))
+}
+
 // FIXME : Scheduling happens here. Is this the right design ?
 func (m *Master) Schedule(taskId string, uid string) (string, error) {
-	msg := CreateMsg(Request, taskId, uid, "")
-	req := NewScheduleInput(msg)
+	// jobGUID is a low-level tracking guid at the metre level.  Tasks can also have their
+	// own UID for tracking which is specific to the app.
+	jobGUID := uuid.NewV4().String()
+
+	msg := CreateMsg(Request, taskId, uid, jobGUID, "")
+	req := NewScheduleInput(SerializeMsg(msg))
+	m.logScheduleInfo("About to schedule job", msg)
 	m.SchInpChan <- req
+	m.logScheduleInfo("Job scheduled", msg)
 	defer req.Close()
 	select {
 	case resp := <-req.RespChan:
 		cleanResp, err := CleanResponseMessage(resp)
 		if err != nil {
+			m.logScheduleErr("Failed to clean response", msg)
 			return "", err
 		}
+		m.logScheduleInfo("Received slave successful response", msg)
 		return cleanResp, nil
 	case err := <-req.ErrorChan:
+		m.logScheduleErr("Received slave error response", msg)
 		return "", err
 	}
-	return "", nil
 }
