@@ -1,8 +1,9 @@
 package transport
 
 import (
-	log "github.com/Sirupsen/logrus"
+	"github.com/gospackler/metre/logging"
 	zmq "github.com/pebbe/zmq4"
+	"go.uber.org/zap"
 )
 
 // Create a new queue.
@@ -18,40 +19,45 @@ func StartBroker(du string, ru string) error {
 	if err != nil {
 		return err
 	}
-	log.Debug("Dealer bound to " + du)
 	err = dSock.Bind(du)
 	if err != nil {
 		return err
 	}
-
+	logging.Logger.Debug("dealer socket connected",
+		zap.String("uri", du),
+	)
 	rSock, err := c.NewSocket(zmq.ROUTER)
 	if err != nil {
 		return err
 	}
-	log.Debug("Router bound to " + ru)
 	err = rSock.Bind(ru)
 	if err != nil {
 		return err
 	}
+	logging.Logger.Debug("router socket connected",
+		zap.String("uri", ru),
+	)
 	poller := zmq.NewPoller()
 	poller.Add(dSock, zmq.POLLIN)
 	poller.Add(rSock, zmq.POLLIN)
 
 	for {
-		log.Debug("Polling for messsages on broker")
+		logging.Logger.Debug("polling for messages on the broker")
 		sockets, err := poller.Poll(-1)
 		if err != nil {
 			return err
 		}
 		for _, socket := range sockets {
-			log.Debug("Received something on the socket ... ")
+			logging.Logger.Debug("received a message on the socket")
 			switch s := socket.Socket; s {
 			case dSock:
 				msg, err := s.RecvMessage(zmq.DONTWAIT)
 				if err != nil {
 					return err
 				}
-				log.Debug("Received in dealer ", msg)
+				logging.Logger.Debug("received a message in the dealer",
+					zap.Strings("message", msg),
+				)
 				_, err = rSock.SendMessage(msg)
 				if err != nil {
 					return err
@@ -61,8 +67,10 @@ func StartBroker(du string, ru string) error {
 				if err != nil {
 					return err
 				}
+				logging.Logger.Debug("received message in router",
+					zap.Strings("message", msg),
+				)
 
-				log.Debug("Received in router ", msg)
 				_, err = dSock.SendMessage(msg)
 				if err != nil {
 					return err

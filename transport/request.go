@@ -1,8 +1,9 @@
 package transport
 
 import (
-	log "github.com/Sirupsen/logrus"
+	"github.com/gospackler/metre/logging"
 	zmq "github.com/pebbe/zmq4"
+	"go.uber.org/zap"
 )
 
 // Abstraction of the zmq request.
@@ -21,7 +22,9 @@ func NewReqConn(uri string) (*ReqConn, error) {
 		return nil, err
 	}
 
-	log.Debug("Req connected to " + uri)
+	logging.Logger.Debug("0MQ request socket bound",
+		zap.String("uri", uri),
+	)
 	return &ReqConn{
 		Conn: conn,
 	}, nil
@@ -30,13 +33,11 @@ func NewReqConn(uri string) (*ReqConn, error) {
 // This is the client for the request.
 // Like a web client, a Send is always followed by a recieve.
 func (r *ReqConn) MakeReq(msg string) (string, error) {
-	log.Debug("Making request with message", msg)
 	_, err := r.Conn.Sock.Send(msg, zmq.DONTWAIT)
 	if err != nil {
 		return "", err
 	}
 
-	log.Debug("Sent message waiting for resp")
 	reply, err := r.Conn.Sock.Recv(0)
 	if err != nil {
 		return "", err
