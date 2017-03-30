@@ -1,8 +1,9 @@
 package transport
 
 import (
-	log "github.com/Sirupsen/logrus"
+	"github.com/gospackler/metre/logging"
 	zmq "github.com/pebbe/zmq4"
+	"go.uber.org/zap"
 )
 
 type Process interface {
@@ -24,8 +25,6 @@ func NewRespConn(uri string) (*RespConn, error) {
 		return nil, err
 	}
 
-	log.Debug("Response Server conected to " + uri)
-
 	return &RespConn{
 		Conn: conn,
 	}, nil
@@ -42,7 +41,10 @@ func (r *RespConn) Listen(process Process, id int) error {
 			return err
 		}
 		resp := process.GetResponse(req)
-		log.Debug(id, " processed response from run ", resp)
+		logging.Logger.Debug("processed response from run",
+			zap.Int("id", id),
+			zap.String("response", resp),
+		)
 		// Send reply back to client
 		_, err = r.Conn.Sock.Send(resp, zmq.DONTWAIT)
 		if err != nil {

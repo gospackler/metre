@@ -3,7 +3,9 @@ package metre
 import (
 	"strings"
 
-	log "github.com/Sirupsen/logrus"
+	"go.uber.org/zap"
+
+	"github.com/gospackler/metre/logging"
 	"github.com/gospackler/metre/transport"
 )
 
@@ -23,7 +25,9 @@ func StartBroker(dealerUri string, routerUri string) {
 	go func() {
 		err := transport.StartBroker(dealerUri, routerUri)
 		if err != nil {
-			log.Warn("Broker :" + err.Error())
+			logging.Logger.Warn("error starting broker",
+				zap.Error(err),
+			)
 		}
 	}()
 }

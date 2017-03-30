@@ -3,15 +3,18 @@ package metre
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
+	"go.uber.org/zap"
+
+	"github.com/gospackler/metre/logging"
 	"github.com/gospackler/metre/transport"
 	"github.com/robfig/cron"
 	uuid "github.com/satori/go.uuid"
 )
+
+var metreMasterZap = zap.String("metre.type", "master")
 
 // Master is the representation of a master server.
 // It can register tasks which gets scheduled periodically.
@@ -53,13 +56,15 @@ func (m *Master) Start() {
 	for i := 0; i < m.schParallel; i++ {
 		reqConn, err := transport.NewReqConn(m.routerUri)
 		if err != nil {
-			log.Error("Request connection error " + err.Error())
+			logging.Logger.Error("request connection error in master",
+				zap.Error(err),
+			)
 		}
 		reqConnChan <- reqConn
 	}
 	go func() {
 		for {
-			log.Debug("Masters scheduler listening for messsages")
+			logging.Logger.Debug("master's scheduler listening for messages")
 			s := <-m.SchInpChan
 			// Add go routine for parallel
 			r := <-reqConnChan
@@ -78,19 +83,24 @@ func (m *Master) Start() {
 func (m *Master) AddTask(t *Task) {
 	id := t.GetID()
 	if _, exists := m.TaskMap[id]; exists {
-		log.Warn("attempted to add two tasks with the same ID [" + t.ID + "]")
+		logging.Logger.Warn("attempted to add two tasks with the same ID",
+			zap.String("id", t.ID),
+		)
 	}
 
 	m.TaskMap[id] = t
-	log.Debug("Adding cron task to Master" + t.ID)
+	logging.Logger.Debug("adding task to master",
+		zap.String("id", t.ID),
+	)
 	m.Cron.AddFunc(t.Interval, func() {
-		log.Debug("Cron triggered")
 		go m.ScheduleFromId(id)
 	})
 }
 
 func (m *Master) ScheduleFromId(ID string) error {
-	log.Debug("About to schedule ID " + ID)
+	logging.Logger.Debug("scheduling task",
+		zap.String("id", ID),
+	)
 	var t *Task
 	var ok bool
 	if t, ok = m.TaskMap[ID]; !ok {
@@ -108,19 +118,23 @@ func (m *Master) ScheduleFromId(ID string) error {
 }
 
 func (m *Master) logScheduleInfo(message string, payload *MetreMessage) {
-	log.Info(fmt.Sprintf("metre.master.Schedule: %s - taskId:%s, uid:%s, jobGUID:%s",
-		message,
-		payload.TaskId,
-		payload.UID,
-		payload.JobGUID))
+	logging.Logger.Info("metre master scheduling info",
+		metreMasterZap,
+		zap.String("message", message),
+		zap.String("task_id", payload.TaskId),
+		zap.String("payload_uid", payload.UID),
+		zap.String("job_guid", payload.JobGUID),
+	)
 }
 
 func (m *Master) logScheduleErr(message string, payload *MetreMessage) {
-	log.Error(fmt.Sprintf("metre.master.Schedule: %s - taskId:%s, uid:%s, jobGUID:%s",
-		message,
-		payload.TaskId,
-		payload.UID,
-		payload.JobGUID))
+	logging.Logger.Error("metre master scheduling error",
+		metreMasterZap,
+		zap.String("message", message),
+		zap.String("task_id", payload.TaskId),
+		zap.String("payload_uid", payload.UID),
+		zap.String("job_guid", payload.JobGUID),
+	)
 }
 
 // FIXME : Scheduling happens here. Is this the right design ?

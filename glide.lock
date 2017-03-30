@@ -1,0 +1,21 @@
+hash: fff8912e721e20a2eba8df9c03585f7636435f945108bd6bf925e22a59642ec9
+updated: 2017-03-29T16:22:42.723714752-07:00
+imports:
+- name: github.com/pebbe/zmq4
+  version: 7157c0d6df4e6bfcae60a6f20cffaee88ac1ab30
+- name: github.com/robfig/cron
+  version: b024fc5ea0e34bc3f83d9941c8d60b0622bfaca4
+- name: github.com/satori/go.uuid
+  version: 879c5887cd475cd7864858769793b2ceb0d44feb
+- name: go.uber.org/atomic
+  version: 3b8db5e93c4c02efbc313e17b2e796b0914a01fb
+- name: go.uber.org/zap
+  version: 4257c7cf05477d92ec25c31cfd3d60e89575f18a
+  subpackages:
+  - buffer
+  - internal/bufferpool
+  - internal/color
+  - internal/exit
+  - internal/multierror
+  - zapcore
+testImports: []

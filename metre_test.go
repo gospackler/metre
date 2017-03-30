@@ -7,7 +7,9 @@ import (
 	"sync"
 	"testing"
 
-	log "github.com/Sirupsen/logrus"
+	"github.com/hart/zepto/logging"
+
+	"go.uber.org/zap"
 )
 
 var test = &Task{
@@ -16,17 +18,23 @@ var test = &Task{
 	Schedule: func(m *Master) error {
 		for i := 0; i < 1000; i++ {
 			uid := fmt.Sprintf("%d", i)
-			log.Info("Scheduling test ")
+			logging.Logger.Info("scheduling test")
 			resp, err := m.Schedule("Test", uid)
 			if err != nil {
-				log.Error(err.Error())
+				logging.Logger.Error("error scheduling test",
+					zap.Error(err),
+				)
 			}
-			log.Info("Response :" + resp)
+			logging.Logger.Info("response from task",
+				zap.String("response", resp),
+			)
 		}
 		return nil
 	},
 	Process: func(msg *MetreMessage) (string, error) {
-		log.Info("Processing Test  " + msg.UID)
+		logging.Logger.Info("processing test",
+			zap.String("uid", msg.UID),
+		)
 		//	return msg.TaskId + msg.UID, nil
 		return "", errors.New("Test error ->" + msg.UID)
 	},
@@ -40,7 +48,7 @@ func printMsgs(msgChan chan string) {
 	go func() {
 		for {
 			msg := <-msgChan
-			log.Info(msg)
+			logging.Logger.Info(msg)
 		}
 	}()
 }

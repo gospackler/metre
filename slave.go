@@ -4,9 +4,13 @@ import (
 	"fmt"
 	"strings"
 
-	log "github.com/Sirupsen/logrus"
+	"go.uber.org/zap"
+
+	"github.com/gospackler/metre/logging"
 	"github.com/gospackler/metre/transport"
 )
+
+var metreSlaveZap = zap.String("metre.type", "slave")
 
 // Slave has a set of workers which listens for request's
 // Each of these workers, work in parallel, thanks to ZMQ
@@ -35,26 +39,32 @@ func NewSlave(dealerUri string, processParallel int) (*Slave, error) {
 func (s *Slave) AddTask(t *Task) {
 	id := t.GetID()
 	if _, exists := s.TaskMap[id]; exists {
-		log.Warn("attempted to add two tasks with the same ID [" + t.ID + "]")
+		logging.Logger.Warn("attempted to add two tasks with the same ID",
+			zap.String("id", t.ID),
+		)
 	}
 
 	s.TaskMap[id] = t
 }
 
 func (s *Slave) logGetResponseInfo(message string, payload *MetreMessage) {
-	log.Info(fmt.Sprintf("metre.slave.GetResponse: %s - taskId:%s, uid:%s, jobGUID:%s",
-		message,
-		payload.TaskId,
-		payload.UID,
-		payload.JobGUID))
+	logging.Logger.Info("metre slave response get",
+		metreSlaveZap,
+		zap.String("message", message),
+		zap.String("task_id", payload.TaskId),
+		zap.String("uid", payload.UID),
+		zap.String("job_guid", payload.JobGUID),
+	)
 }
 
 func (s *Slave) logGetResponseErr(message string, payload *MetreMessage) {
-	log.Error(fmt.Sprintf("metre.slave.GetResponse: %s - taskId:%s, uid:%s, jobGUID:%s",
-		message,
-		payload.TaskId,
-		payload.UID,
-		payload.JobGUID))
+	logging.Logger.Error("metre slave response get",
+		metreSlaveZap,
+		zap.String("message", message),
+		zap.String("task_id", payload.TaskId),
+		zap.String("uid", payload.UID),
+		zap.String("job_guid", payload.JobGUID),
+	)
 }
 
 func (s *Slave) GetResponse(m string) (ret string) {
@@ -86,15 +96,21 @@ func (s *Slave) GetResponse(m string) (ret string) {
 }
 
 func (s *Slave) Listen(id int) {
-	log.Debug("Start Slave ", id)
+	logging.Logger.Debug("starting slave",
+		zap.Int("id", id),
+	)
 	respConn, err := transport.NewRespConn(s.dealerUri)
 	if err != nil {
-		log.Error("Error starting slave " + err.Error())
+		logging.Logger.Error("error connection to the dealer",
+			zap.Error(err),
+		)
 	}
 
 	err = respConn.Listen(s, id)
 	if err != nil {
-		log.Error("Slave start error " + err.Error())
+		logging.Logger.Error("error starting slave",
+			zap.Error(err),
+		)
 	}
 	respConn.Close()
 }

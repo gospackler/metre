@@ -1,10 +1,12 @@
 package metre
 
 import (
-	log "github.com/Sirupsen/logrus"
-
 	"sync"
 	"time"
+
+	"github.com/gospackler/metre/logging"
+
+	"go.uber.org/zap"
 )
 
 type Task struct {
@@ -39,6 +41,8 @@ func (t *Task) Evaluate(msg *MetreMessage) {
 	case Error:
 		t.SendMessage("ERROR:" + msg.TaskId + ":" + msg.Message)
 	default:
-		log.Warn("Unknown message type")
+		logging.Logger.Warn("unknown message type",
+			zap.Any("message_type", msg.MessageType),
+		)
 	}
 }
